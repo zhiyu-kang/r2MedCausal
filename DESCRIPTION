@@ -1,4 +1,4 @@
-Package: rPackage
+Package: r2MedCausal
 Title: High-Dimensional Mediation Analysis Using R-squared Measure for Binary Outcomes
 Version: 0.1.0
 Author: Zhiyu Kang <kang0412@umn.edu>
@@ -11,4 +11,6 @@ Description: Provides methods for estimating the total mediation effect in high-
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-  dplyr
+  foreach
+  doParallel
+RoxygenNote: 7.1.2
