@@ -1,0 +1,14 @@
+Package: rPackage
+Title: High-Dimensional Mediation Analysis Using R-squared Measure for Binary Outcomes
+Version: 0.1.0
+Author: Zhiyu Kang <kang0412@umn.edu>
+Description: Provides methods for estimating the total mediation effect in high-dimensional 
+  case-control studies using an R-squared based measure. This approach accounts for 
+  ascertainment bias, weak mediators, and bidirectional effects using a cross-fitted, 
+  modified Haseman-Elston regression-based estimation procedure. The package includes 
+  functions for mediator selection, variance component estimation, and total mediation 
+  effect computation.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+  dplyr
