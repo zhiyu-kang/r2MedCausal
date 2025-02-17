@@ -1,6 +1,7 @@
 # need to add Roxygen2 documentation
 
 library(dplyr)
+source("R/utility_functions.R")
 
 generate_S_chol = function(p, alpha){
   #var-cov of M and x

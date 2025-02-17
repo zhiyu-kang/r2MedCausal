@@ -1,5 +1,3 @@
-# change data generation process so that measurement can be compared directly.
-
 ######## add type 1,2 and 3 non-mediators #########
 #library(ggplot2)
 library(foreach)
