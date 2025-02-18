@@ -2,7 +2,7 @@
 % Please edit documentation in R/mediation_estimation.R
 \name{r2_estimation_cf}
 \alias{r2_estimation_cf}
-\title{Cross-Fitted R²-Based Mediation Effect Estimation}
+\title{Cross-Fitted R-squared Based Mediation Effect Estimation}
 \usage{
 r2_estimation_cf(X, M, Y, K, covariates = NULL, nfold = 2, seed = 123)
 }
@@ -35,15 +35,18 @@ A named list containing:
 }
 }
 \description{
-This function estimates the mediation effect (R² measure) using cross-fitting.
-It performs mediator selection, variance estimation, and mediation effect estimation in
-high-dimensional mediation analysis.
+This function estimates the mediation effect using cross-fitting.
 }
 \examples{
-data <- data_generate(p = 1000, N = 100, K = 0.05, r = 0.2, res.var = 0.5,
+data <- data_generate(p = 2000, N = 500, K = 0.05, r = 0.5, res.var = 0.2,
                       pi_11 = 0.09, pi_alpha = 0.3, pi_beta = 0.3,
-                      sig2_a = 0.5, sig2_11 = 0.2, sig2_01 = 0.3, seed = 123)
-result <- r2_estimation_cf(data$x, data$M, data$y, K = 0.05)
+                      sig2_a = 0.3, sig2_11 = 0.5, sig2_01 = 0.3, seed = 23)
+X <- data$x
+M <- data$M
+Y <- data$y
+K <- 0.05
+
+result <- r2_estimation_cf(X, M, Y, K)
 print(result)
 
 }

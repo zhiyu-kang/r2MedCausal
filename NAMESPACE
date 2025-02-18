@@ -2,3 +2,6 @@
 
 export(data_generate)
 export(r2_estimation_cf)
+importFrom(doParallel,registerDoParallel)
+importFrom(foreach,"%dopar%")
+importFrom(foreach,foreach)

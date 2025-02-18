@@ -11,6 +11,6 @@ Description: Provides methods for estimating the total mediation effect in high-
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-  foreach
-  doParallel
+    foreach,
+    doParallel
 RoxygenNote: 7.1.2
