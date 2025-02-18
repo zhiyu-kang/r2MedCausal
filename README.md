@@ -49,6 +49,4 @@ print(result)
 
 If you use `r2MedCausal` in your research, please cite the following paper:
 
-Zhiyu Kang, Li Chen, Peng Wei, Zhichao Xu, Chunlin Li, Tianzhong Yang (2025).  
-**Estimation of total mediation effect for a binary trait in a case-control study for high-dimensional omics mediators.**  
-*bioRxiv*. https://doi.org/10.1101/2025.01.28.635396
+Zhiyu Kang, Li Chen, Peng Wei, Zhichao Xu, Chunlin Li, Tianzhong Yang (2025). **Estimation of total mediation effect for a binary trait in a case-control study for high-dimensional omics mediators.** *bioRxiv*. https://doi.org/10.1101/2025.01.28.635396
