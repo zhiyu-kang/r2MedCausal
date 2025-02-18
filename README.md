@@ -1,6 +1,6 @@
 # r2MedCausal
 
-`r2MedCausal` provides methods for estimating the total mediation effect in high-dimensional case-control studies using an R-squared based measure. This approach accounts for ascertainment bias, weak mediators, and bidirectional effects using a cross-fitted, modified Haseman-Elston regression-based estimation procedure.
+`r2MedCausal` provides methods for estimating high-dimensional total mediation effect in case-control studies using an R-squared based measure. This approach accounts for ascertainment bias, weak mediators, and bidirectional effects using a cross-fitted, modified Haseman-Elston regression-based estimation procedure.
 
 ---
 
