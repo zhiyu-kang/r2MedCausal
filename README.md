@@ -45,6 +45,23 @@ result <- r2_estimation_cf(X, M, Y, K)
 print(result)
 ```
 
+You can compute confidence intervals using jackknife resampling. 
+
+```r
+# Set the number of cores for parallel computation
+num_cores <- 6  # Adjust based on your system capabilities
+
+# Compute confidence intervals
+ci_result <- confidence_interval(num_cores, X, M, Y, K)
+print(ci_result)
+```
+
+ **Warning:**  
+- Jackknife resampling involves removing one observation at a time and recomputing the mediation effect.  
+- This makes the computation **significantly slower** than a single estimation.  
+- For large datasets, consider using a high-performance computing cluster.
+
+
 ## Citing r2MedCausal
 
 If you use `r2MedCausal` in your research, please cite the following paper:
