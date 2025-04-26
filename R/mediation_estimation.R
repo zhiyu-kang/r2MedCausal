@@ -10,6 +10,8 @@
 #' @param K Numeric. Proportion of cases in the population.
 #' @param covariates Numeric matrix. Covariates included in the model.
 #' @param nfold Integer. Number of cross-fitting folds. Default is 2.
+#' @param fdr_method Str. FDR control method, can be either 'storey' or any options provided in function p.adjust(). Default is 'BH'.
+#' @param fdr_cutoff Numeric. FDR cutoff value. Default is 0.01.
 #' @param seed Integer. Random seed for reproducibility. Default is 123.
 #'
 #' @return A named list containing:
@@ -39,7 +41,7 @@
 #' @export
 
 # n-fold cross fitting
-r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, nfold = 2, seed = 123) {
+r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01, seed = 123) {
   start.time <- Sys.time()
   set.seed(seed)
   ind <- sample(length(Y))
@@ -56,7 +58,7 @@ r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, nfold = 2, seed = 12
     covariates_filter <- if (!is.null(covariates)) covariates[-hold_out_ind, ] else NULL
     covariates_est <- if (!is.null(covariates)) covariates[hold_out_ind, ] else NULL
 
-    filter_result <- filter_type2_nonmediator(X[-hold_out_ind], M[-hold_out_ind, ], Y[-hold_out_ind], K, covariates_filter, W[-hold_out_ind, ])
+    filter_result <- filter_type2_nonmediator(X[-hold_out_ind], M[-hold_out_ind, ], Y[-hold_out_ind], K, covariates_filter, W[-hold_out_ind, ], fdr_method, fdr_cutoff)
     result_i <- estimation(X[hold_out_ind], M[hold_out_ind, ], Y[hold_out_ind], K, covariates_est, W[hold_out_ind, ], filter_result)
     est.cross <- rbind(est.cross, result_i)
   }
@@ -106,7 +108,7 @@ pcgc = function(genotype.stand, phenotype, covariates=NA, P, K, P_cond=NA, adjus
 }
 
 # step 1: mediatior selection and estimation of sig_a
-filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W){
+filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W, fdr_method = 'BH', fdr_cutoff = 0.01){
   P <- mean(Y)
   N <- length(Y)
   p <- ncol(M)
@@ -140,7 +142,7 @@ filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W){
   bias <- p*sum((w*X)^2)/(sum(w*(X)^2))^2
   alpha2.est <- sum(alpha.est^2) - bias # estimate of alpha^T alpha after bias correction
 
-  sig_alpha <- est_sig_BH(p_value_alpha)
+  sig_alpha <- est_sig(p_value_alpha, method = fdr_method, cutoff = fdr_cutoff)
   sig2_a.est <- alpha2.est/p/mean(sig_alpha)
 
   return(list('selected_var' = unname(sig_alpha & ind_cor), 'sig2_a.est' = sig2_a.est))
@@ -177,14 +179,18 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
   varl.est <- r.est^2 + sig2_a.est*sig2_11.est + 1
   Rmed.est <- sig2_a.est*sig2_11.est/varl.est
   Q.est <- Rmed.est/(Rmed.est + r.est^2/varl.est)
-
+  
+  if (r.est^2 < 0.0001 && sig2_a.est * sig2_11.est < 0.0001) {
+    warning("Q_2 can be unstable when total effect size is small.")
+  }
+  
   return(c('Rmed.est' = unname(Rmed.est), 'Q.est' = unname(Q.est), 'varl.est' = unname(varl.est),
             'sig2_11.est' = unname(sig2_11.est), 'sig2_a.est' = unname(sig2_a.est), 'gamma.est' = unname(r.est),
             'sig_number' = sum(sig_alpha)))
 }
 
 # jackknife method to calculate confidence interval
-confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2){
+confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01){
   doParallel::registerDoParallel(cores = cores)
   A <- scale(M) %*% t(scale(M))/ncol(M)
   eig_A <- eigen(A, symmetric = TRUE)
@@ -193,7 +199,7 @@ confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2)
   est.jack <- foreach::foreach(i = 1:length(Y), .combine = rbind) %dopar% {
     tryCatch(
       {
-        unlist(r2_estimation_cf(X[-i], M[-i, ], Y[-i], K, covariates[-i, ], 2))
+        unlist(r2_estimation_cf(X[-i], M[-i, ], Y[-i], K, covariates[-i, ], nfold, fdr_method, fdr_cutoff))
       },
       error = function(e) {
         message(paste("Error in iteration", i, ":", e$message))
