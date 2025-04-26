@@ -9,12 +9,27 @@ measure_emp <- function(alpha, beta, r){
   return(c('Rmed.emp' = Rmed.emp, 'Q.emp'= Q.emp))
 }
 
-# BH method to control FDR
-est_sig_BH = function(p_values, cutoff = 0.01){
-  adjusted_p_values <- p.adjust(p_values, method = "BH")
+# FDR control method
+est_sig = function(p_values, method = "BH", cutoff = 0.01) {
+  if (method == "storey") {
+    if (!requireNamespace("qvalue", quietly = TRUE)) {
+      stop("Package 'qvalue' is required for Storey's method.")
+    }
+    qobj <- qvalue::qvalue(p_values)
+    adjusted_p_values <- qobj$qvalues
+  } else {
+    adjusted_p_values <- p.adjust(p_values, method = method)
+  }
+  
   significant <- adjusted_p_values < cutoff
   return(significant)
 }
+
+#est_sig_BH = function(p_values, cutoff = 0.01){
+#  adjusted_p_values <- p.adjust(p_values, method = "BH")
+#  significant <- adjusted_p_values < cutoff
+#  return(significant)
+#}
 
 # removal of highly correlated mediators.
 remove_highly_correlated <- function(data, threshold = 0.8) {
