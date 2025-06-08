@@ -4,7 +4,17 @@
 \alias{r2_estimation_cf}
 \title{Cross-Fitted R-squared Based Mediation Effect Estimation}
 \usage{
-r2_estimation_cf(X, M, Y, K, covariates = NULL, nfold = 2, seed = 123)
+r2_estimation_cf(
+  X,
+  M,
+  Y,
+  K,
+  covariates = NULL,
+  nfold = 2,
+  fdr_method = "BH",
+  fdr_cutoff = 0.01,
+  seed = 123
+)
 }
 \arguments{
 \item{X}{Numeric vector. Exposure variable.}
@@ -18,6 +28,10 @@ r2_estimation_cf(X, M, Y, K, covariates = NULL, nfold = 2, seed = 123)
 \item{covariates}{Numeric matrix. Covariates included in the model.}
 
 \item{nfold}{Integer. Number of cross-fitting folds. Default is 2.}
+
+\item{fdr_method}{Str. FDR control method, can be either 'storey' or any options provided in function p.adjust(). Default is 'BH'.}
+
+\item{fdr_cutoff}{Numeric. FDR cutoff value. Default is 0.01.}
 
 \item{seed}{Integer. Random seed for reproducibility. Default is 123.}
 }

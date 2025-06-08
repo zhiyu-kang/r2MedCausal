@@ -1,9 +1,6 @@
 #' @title Cross-Fitted R-squared Based Mediation Effect Estimation
 #' @description This function estimates the mediation effect using cross-fitting.
 #'
-#' @importFrom foreach %dopar% foreach
-#' @importFrom doParallel registerDoParallel
-#'
 #' @param X Numeric vector. Exposure variable.
 #' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
 #' @param Y Numeric vector. Binary outcome variable (0/1).
@@ -179,17 +176,46 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
   varl.est <- r.est^2 + sig2_a.est*sig2_11.est + 1
   Rmed.est <- sig2_a.est*sig2_11.est/varl.est
   Q.est <- Rmed.est/(Rmed.est + r.est^2/varl.est)
-  
+
   if (r.est^2 < 0.0001 && sig2_a.est * sig2_11.est < 0.0001) {
     warning("Q_2 can be unstable when total effect size is small.")
   }
-  
+
   return(c('Rmed.est' = unname(Rmed.est), 'Q.est' = unname(Q.est), 'varl.est' = unname(varl.est),
             'sig2_11.est' = unname(sig2_11.est), 'sig2_a.est' = unname(sig2_a.est), 'gamma.est' = unname(r.est),
             'sig_number' = sum(sig_alpha)))
 }
 
-# jackknife method to calculate confidence interval
+#' @title Jackknife Confidence Interval for Mediation Effect
+#' @description Estimates 95\% jackknife confidence intervals for R2-based mediation analysis using cross-fitting.
+#'
+#' @importFrom foreach %dopar% foreach
+#' @importFrom doParallel registerDoParallel
+#'
+#' @param cores Integer. Number of CPU cores to use for parallel computation.
+#' @param X Numeric vector. Exposure variable.
+#' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
+#' @param Y Numeric vector. Binary outcome variable (0/1).
+#' @param K Numeric. Proportion of cases in the population.
+#' @param covariates Numeric matrix. Optional covariates to include in the model. Default is NULL.
+#' @param nfold Integer. Number of folds for cross-fitting. Default is 2.
+#' @param fdr_method Character. Method for false discovery rate control. Default is "BH".
+#' @param fdr_cutoff Numeric. FDR cutoff threshold. Default is 0.01.
+#'
+#' @return A matrix with two rows (2.5\% and 97.5\% quantiles) and columns corresponding to:
+#' \itemize{
+#'   \item Rmed.est
+#'   \item Q.est
+#'   \item varl.est
+#'   \item sig2_11.est
+#'   \item sig2_a.est
+#'   \item gamma.est
+#'   \item sig_number
+#'   \item time
+#' }
+#'
+#' @export
+
 confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01){
   doParallel::registerDoParallel(cores = cores)
   A <- scale(M) %*% t(scale(M))/ncol(M)
