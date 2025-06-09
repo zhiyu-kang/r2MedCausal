@@ -39,7 +39,6 @@
 #'
 #' @export
 
-# main function for data generation
 data_generate <- function(p, N, K, r, res.var,
                           pi_11 = NULL, pi_alpha = NULL, pi_beta = NULL,
                           sig2_a = NULL, sig2_11 = NULL, sig2_01 = NULL,
@@ -97,9 +96,10 @@ data_generate <- function(p, N, K, r, res.var,
   Y <- Y[selectind]
 
   # Compute empirical mediation effects
-  true_emp <- measure_emp(alpha, beta, r)
+  true_emp <- measure_emp(alpha, beta, r, res.var)
   Rmed.emp <- unname(true_emp['Rmed.emp'])
   Q.emp <- unname(true_emp['Q.emp'])
+  varl.emp <- unname(true_emp['varl.emp'])
 
   # Compute theoretical mediation effects only if sig2_a, sig2_11, sig2_01 were provided
   if (!is.null(sig2_a) && !is.null(sig2_11) && !is.null(sig2_01)) {
@@ -113,7 +113,7 @@ data_generate <- function(p, N, K, r, res.var,
   }
 
   return(list('x' = x, 'y' = Yb, 'liab' = Y, 'M' = M, 'Q' = Q, 'Rmed' = Rmed, 'varl' = varl,
-              'Q.emp' = Q.emp, 'Rmed.emp' = Rmed.emp, 'alpha' = alpha, 'beta' = beta))
+              'Q.emp' = Q.emp, 'Rmed.emp' = Rmed.emp, 'varl.emp' = varl.emp, 'alpha' = alpha, 'beta' = beta))
 }
 
 #' @keywords internal

@@ -1,12 +1,14 @@
 # empirical measurements calculated from alpha, beta and gamma.
-measure_emp <- function(alpha, beta, r){
+measure_emp <- function(alpha, beta, r, res.var){
   med.true <-  (beta != 0) & (alpha != 0)
-  sig2_a.emp <- var(alpha[med.true])
-  sig2_b.emp <- var(beta[med.true])*sum(med.true)
-  varl.emp <- r^2 + sig2_a.emp*sig2_b.emp + 1
+  med.type1 <- (beta != 0) & (alpha == 0)
+  sig2_a.emp <- if (sum(med.true) > 1) var(alpha[med.true]) else 0
+  sig2_b.emp <- if (sum(med.true) > 1) var(beta[med.true])*sum(med.true) else 0
+  sig2_01.emp <- if (sum(med.type1) > 1) var(beta[med.type1])*sum(med.type1) else 0
+  varl.emp <- r^2 + sig2_a.emp*sig2_b.emp + sig2_b.emp + sig2_01.emp + res.var
   Rmed.emp <- sig2_a.emp*sig2_b.emp/varl.emp
   Q.emp <- Rmed.emp/(Rmed.emp + r^2/varl.emp)
-  return(c('Rmed.emp' = Rmed.emp, 'Q.emp'= Q.emp))
+  return(c('Q.emp'= Q.emp, 'Rmed.emp' = Rmed.emp, 'varl.emp' = varl.emp))
 }
 
 # FDR control method
@@ -20,7 +22,7 @@ est_sig = function(p_values, method = "BH", cutoff = 0.01) {
   } else {
     adjusted_p_values <- p.adjust(p_values, method = method)
   }
-  
+
   significant <- adjusted_p_values < cutoff
   return(significant)
 }
