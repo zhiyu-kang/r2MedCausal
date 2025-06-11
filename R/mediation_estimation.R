@@ -145,7 +145,7 @@ filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W, fdr_
   return(list('selected_var' = unname(sig_alpha & ind_cor), 'sig2_a.est' = sig2_a.est))
 }
 
-# step 2 and 3: estimation of gamma and sig_b
+# step 2 and 3: estimation of gamma and sig_11
 estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
   P <- mean(Y)
   N <- length(Y)
@@ -157,20 +157,27 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
     covariates <- cbind(covariates_demo, W)
   }
 
+  # fixed effect glm to estimate gamma
+  probit.fit <- glm(Y ~ X + covariates, family = binomial(link='probit'), weights = w)
+  r.est <- probit.fit$coefficients[2]
+
+  # calculate mediator residual
   residual.est <- apply(M, 2, function(Var) {residuals(lm(Var ~ X + covariates, weights = w))}) # new residual with mean 0 and sd 1 in population
 
   # get selected mediators and sig2_a from other folds
   sig_alpha <- filter_result$selected_var
+  if (all(!sig_alpha)) { # no mediation effect if all of the features are type2 non-mediators.
+    varl.est <- r.est^2 + 1
+    return(c('Rmed.est' = 0, 'Q.est' = 0, 'varl.est' = unname(varl.est),
+             'sig2_11.est' = 0, 'sig2_a.est' = unname(sig2_a.est), 'gamma.est' = unname(r.est),
+             'sig_number' = sum(sig_alpha)))
+  }
   sig2_a.est <- filter_result$sig2_a.est
   residual.est.filter <- residual.est[, sig_alpha]
 
   # estimate sig2_11
   pcgc.est <- pcgc(residual.est.filter, Y, covariates = cbind(X, covariates), P = P, K = K, P_cond = NA, adjustGRM=TRUE)
   sig2_11.est <- pcgc.est$sig2_g
-
-  # fixed effect glm
-  probit.fit <- glm(Y ~ X + covariates, family = binomial(link='probit'), weights = w)
-  r.est <- probit.fit$coefficients[2]
 
   # estimate of Rmed and total variance
   varl.est <- r.est^2 + sig2_a.est*sig2_11.est + 1
