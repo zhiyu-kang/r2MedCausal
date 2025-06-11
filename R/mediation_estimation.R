@@ -166,13 +166,13 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
 
   # get selected mediators and sig2_a from other folds
   sig_alpha <- filter_result$selected_var
+  sig2_a.est <- filter_result$sig2_a.est
   if (all(!sig_alpha)) { # no mediation effect if all of the features are type2 non-mediators.
     varl.est <- r.est^2 + 1
     return(c('Rmed.est' = 0, 'Q.est' = 0, 'varl.est' = unname(varl.est),
              'sig2_11.est' = 0, 'sig2_a.est' = unname(sig2_a.est), 'gamma.est' = unname(r.est),
              'sig_number' = sum(sig_alpha)))
   }
-  sig2_a.est <- filter_result$sig2_a.est
   residual.est.filter <- residual.est[, sig_alpha]
 
   # estimate sig2_11
