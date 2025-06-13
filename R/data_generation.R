@@ -66,7 +66,7 @@ data_generate <- function(p, N, K, r, res.var,
   }
 
   # Generate M and X using correlation structure
-  S_chol <- generate_S_chol(p, alpha)
+  S_chol <- generate_S_chol(p, alpha, seed)
   XM <- matrix(rnorm(N/K/2 * (p+1)), nrow = N/K/2)
   XM <- XM %*% S_chol
   x <- XM[,1]
@@ -118,6 +118,7 @@ data_generate <- function(p, N, K, r, res.var,
 
 #' @keywords internal
 generate_S_chol = function(p, alpha){
+  set.seed(seed)
   #var-cov of M and x
   M_cov <- matrix(0, p, p)
   xi_sd <- rep(1, p) # sd of uncorrelated components xi
