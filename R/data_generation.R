@@ -117,7 +117,7 @@ data_generate <- function(p, N, K, r, res.var,
 }
 
 #' @keywords internal
-generate_S_chol = function(p, alpha){
+generate_S_chol = function(p, alpha, seed){
   set.seed(seed)
   #var-cov of M and x
   M_cov <- matrix(0, p, p)
