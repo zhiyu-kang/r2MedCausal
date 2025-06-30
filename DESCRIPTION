@@ -12,5 +12,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
     foreach,
-    doParallel
+    doParallel,
+    ggplot2,
+    qvalue
 RoxygenNote: 7.1.2

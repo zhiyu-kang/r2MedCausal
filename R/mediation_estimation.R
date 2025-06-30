@@ -244,3 +244,88 @@ confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2,
   ci.result <- apply(est.jack, 2, quantile, probs = c(0.025, 0.975), na.rm = TRUE)
   return(ci.result)
 }
+
+#' @title Weak effect plot
+#' @description This function visualizes the distribution of p-values for the association between each mediator and a binary outcome. It highlights potential weak mediator-outcome associations when the mediator is also associated with the exposure.
+#'
+#' @importFrom qvalue qvalue
+#' @importFrom ggplot2 ggplot aes geom_histogram geom_hline annotate labs theme_minimal
+#'
+#' @param X Numeric vector. Exposure variable.
+#' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
+#' @param Y Numeric vector. Binary outcome variable (0/1).
+#' @param K Numeric. Proportion of cases in the population.
+#' @param covariates Numeric matrix. Covariates included in the model.
+#'
+#' @return A ggplot2 object showing the histogram of p-values for the mediator-outcome associations.
+#'
+#' @examples
+#' data <- data_generate(p = 2000, N = 500, K = 0.05, r = 0.5, res.var = 0.2,
+#'                       pi_11 = 0.09, pi_alpha = 0.3, pi_beta = 0.3,
+#'                       sig2_a = 0.3, sig2_11 = 0.5, sig2_01 = 0.3, seed = 23)
+#' X <- data$x
+#' M <- data$M
+#' Y <- data$y
+#' K <- 0.05
+#'
+#' result <- r2_estimation_cf(X, M, Y, K)
+#' print(result)
+#'
+#' @export
+
+weak_effect_plot <- function(X, M, Y, K, covariates = NULL){
+  P <- mean(Y)
+  N <- length(Y)
+  if (is.null(covariates)) {
+    covariates <- rep(1, N)
+  }
+  p <- ncol(M)
+  w <- ifelse(Y == 1, 1, P * (1 - K) / K / (1 - P))
+  A <- scale(M) %*% t(scale(M))/ncol(M)
+  eig_A <- eigen(A, symmetric = TRUE)
+  U <- eig_A$vectors
+  W <- sqrt(nrow(M)) * U[, 1:6]
+
+  # q values for alpha
+  getAlpha <- function(Var){
+    model <- lm(Var ~ X + covariates, weights = w)
+    alpha.est <- summary(model)$coefficients[2,'Estimate']
+    p_value <- summary(model)$coefficients[2,'Pr(>|t|)']
+    return(list(alpha.est, p_value))
+  }
+
+  temp <- apply(M, 2, getAlpha)
+  temp2 <- sapply(temp, function(x) sapply(x, function(y) y[[1]]))
+  alpha.est <- temp2[1, ]
+  p_values_alpha <- temp2[2, ]
+
+  # q values for beta
+  getBeta <- function(Var){
+    model <- glm(Y ~ Var + X + covariates + W, family = binomial(link='probit'), weights = w)
+    beta.est <- summary(model)$coefficients[2,'Estimate']
+    p_value <- summary(model)$coefficients[2,'Pr(>|z|)']
+    return(list(beta.est, p_value))
+  }
+
+  temp <- apply(M, 2, getBeta)
+  temp2 <- sapply(temp, function(x) sapply(x, function(y) y[[1]]))
+  beta.est <- temp2[1, ]
+  p_values_beta <- temp2[2, ]
+  data <- data.frame(p_values_beta = p_values_beta, p_values_alpha = p_values_alpha)
+
+  # weak effect plot
+  qobj <- qvalue(p_values_beta)
+  pi0_estimate <- qobj$pi0  # Estimated proportion of null p-values
+  flatten_density <- pi0_estimate * 1
+
+  ggplot(subset(data, p_values_alpha < 0.05), aes(x = p_values_beta)) +
+    geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length.out = 21), fill = "skyblue", color = "black", alpha = 0.5) +
+    geom_hline(yintercept = flatten_density, linetype = "dashed", color = "red", linewidth = 0.5) +
+    annotate("text", x = 0.7, y = flatten_density + 1.5,
+             label = paste0("Estimated null density level = ", round(flatten_density, 2)),
+             color = "red", size = 4)+
+    labs(x = "P-values for Mediator-Outcome Associations",
+         y = "Density") +
+    theme_minimal()
+}
+
