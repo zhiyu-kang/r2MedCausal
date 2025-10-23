@@ -6,7 +6,7 @@
 
 ## Installation
 
-You can install `r2MedCausal` package from **GitHub** using `devtools`:
+You can install `r2MedCausal` package using `devtools`:
 
 ```r
 # Install devtools if you haven't already
