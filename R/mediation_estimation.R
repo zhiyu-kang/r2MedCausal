@@ -5,7 +5,9 @@
 #' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
 #' @param Y Numeric vector. Binary outcome variable (0/1).
 #' @param K Numeric. Proportion of cases in the population.
-#' @param covariates Numeric matrix. Covariates included in the model.
+#' @param covariates Optional numeric matrix of covariates shared between the exposure-mediator and mediator-outcome models. If specified, used when covariates_alpha and covariates_beta are NULL.
+#' @param covariates_alpha Optional numeric matrix of covariates for the exposure-mediator model (M ~ X + covariates_alpha).
+#' @param covariates_beta Optional numeric matrix of covariates for the mediator-outcome model (Y ~ M + X + covariates_beta).
 #' @param nfold Integer. Number of cross-fitting folds. Default is 2.
 #' @param fdr_method Str. FDR control method, can be either 'storey' or any options provided in function p.adjust(). Default is 'BH'.
 #' @param fdr_cutoff Numeric. FDR cutoff value. Default is 0.01.
@@ -38,9 +40,15 @@
 #' @export
 
 # n-fold cross fitting
-r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01, seed = 123) {
+r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, covariates_alpha = NULL, covariates_beta = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01, seed = 123) {
   start.time <- Sys.time()
   set.seed(seed)
+  if (!is.null(covariates) && !is.null(covariates_alpha) && !is.null(covariates_beta)) {
+    warning("Both covariates_alpha and covariates_beta are provided; 'covariates' will be ignored.")
+  }
+  if (is.null(covariates_alpha)) covariates_alpha <- covariates
+  if (is.null(covariates_beta)) covariates_beta <- covariates
+
   ind <- sample(length(Y))
   fold_list <- split(ind, cut(seq_along(ind), breaks = nfold, labels = FALSE)) # Split data according to fold ID
   est.cross <- matrix(ncol = 7, nrow = 0)
@@ -52,11 +60,15 @@ r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, nfold = 2, fdr_metho
 
   for (i in 1:nfold) {
     hold_out_ind <- fold_list[[i]]
-    covariates_filter <- if (!is.null(covariates)) covariates[-hold_out_ind, ] else NULL
-    covariates_est <- if (!is.null(covariates)) covariates[hold_out_ind, ] else NULL
+    #covariates_filter <- if (!is.null(covariates)) covariates[-hold_out_ind, ] else NULL
+    #covariates_est <- if (!is.null(covariates)) covariates[hold_out_ind, ] else NULL
+    covariates_alpha_filter <- if (!is.null(covariates_alpha)) covariates_alpha[-hold_out_ind, ] else NULL
+    covariates_beta_filter <- if (!is.null(covariates_beta)) covariates_beta[-hold_out_ind, ] else NULL
+    covariates_alpha_est <- if (!is.null(covariates_alpha)) covariates_alpha[hold_out_ind, ] else NULL
+    covariates_beta_est <- if (!is.null(covariates_beta)) covariates_beta[hold_out_ind, ] else NULL
 
-    filter_result <- filter_type2_nonmediator(X[-hold_out_ind], M[-hold_out_ind, ], Y[-hold_out_ind], K, covariates_filter, W[-hold_out_ind, ], fdr_method, fdr_cutoff)
-    result_i <- estimation(X[hold_out_ind], M[hold_out_ind, ], Y[hold_out_ind], K, covariates_est, W[hold_out_ind, ], filter_result)
+    filter_result <- filter_type2_nonmediator(X[-hold_out_ind], M[-hold_out_ind, ], Y[-hold_out_ind], K, covariates_alpha_filter, W[-hold_out_ind, ], fdr_method, fdr_cutoff)
+    result_i <- estimation(X[hold_out_ind], M[hold_out_ind, ], Y[hold_out_ind], K, covariates_beta_est, W[hold_out_ind, ], filter_result)
     est.cross <- rbind(est.cross, result_i)
   }
 
@@ -104,16 +116,16 @@ pcgc = function(genotype.stand, phenotype, covariates=NA, P, K, P_cond=NA, adjus
   return(list('sig2_g' = sig2_g, 'sig2_t' = sig2_t, 'P_cond' = P_cond, 'gamma' = gamma))
 }
 
-# step 1: mediatior selection and estimation of sig_a
-filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W, fdr_method = 'BH', fdr_cutoff = 0.01){
+# step 1: mediator selection and estimation of sig_a
+filter_type2_nonmediator <- function(X, M, Y, K, covariates_alpha = NULL, W, fdr_method = 'BH', fdr_cutoff = 0.01){
   P <- mean(Y)
   N <- length(Y)
   p <- ncol(M)
   w <- ifelse(Y == 1, 1, P * (1 - K) / K / (1 - P))
-  if (is.null(covariates_demo)) {
+  if (is.null(covariates_alpha)) {
     covariates <- W
   } else {
-    covariates <- cbind(covariates_demo, W)
+    covariates <- cbind(covariates_alpha, W)
   }
 
   residual.est <- apply(M, 2, function(Var) {residuals(lm(Var ~ X + covariates, weights = w))}) # new residual with mean 0 and sd 1 in population
@@ -121,10 +133,10 @@ filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W, fdr_
   ind_cor <- remove_highly_correlated(residual.est, threshold = 0.8)
 
   getAlpha <- function(Var){
-    if (is.null(covariates_demo)) {
+    if (is.null(covariates_alpha)) {
       model <- lm(Var ~ X, weights = w)
     } else {
-      model <- lm(Var ~ X + covariates_demo, weights = w)
+      model <- lm(Var ~ X + covariates_alpha, weights = w)
     }
     alpha.est <- summary(model)$coefficients[2,'Estimate']
     p_value <- summary(model)$coefficients[2,'Pr(>|t|)']
@@ -146,15 +158,15 @@ filter_type2_nonmediator <- function(X, M, Y, K, covariates_demo = NULL, W, fdr_
 }
 
 # step 2 and 3: estimation of gamma and sig_11
-estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
+estimation <- function(X, M, Y, K, covariates_beta = NULL, W, filter_result) {
   P <- mean(Y)
   N <- length(Y)
   p <- ncol(M)
   w <- ifelse(Y == 1, 1, P * (1 - K) / K / (1 - P))
-  if (is.null(covariates_demo)) {
+  if (is.null(covariates_beta)) {
     covariates <- cbind(matrix(1, nrow=nrow(M)), W)
   } else {
-    covariates <- cbind(covariates_demo, W)
+    covariates <- cbind(covariates_beta, W)
   }
 
   # fixed effect glm to estimate gamma
@@ -204,7 +216,9 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
 #' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
 #' @param Y Numeric vector. Binary outcome variable (0/1).
 #' @param K Numeric. Proportion of cases in the population.
-#' @param covariates Numeric matrix. Optional covariates to include in the model. Default is NULL.
+#' @param covariates Optional numeric matrix of covariates shared between the exposure-mediator and mediator-outcome models. If specified, used when covariates_alpha and covariates_beta are NULL.
+#' @param covariates_alpha Optional numeric matrix of covariates for the exposure-mediator model (M ~ X + covariates_alpha).
+#' @param covariates_beta Optional numeric matrix of covariates for the mediator-outcome model (Y ~ M + X + covariates_beta).
 #' @param nfold Integer. Number of folds for cross-fitting. Default is 2.
 #' @param fdr_method Character. Method for false discovery rate control. Default is "BH".
 #' @param fdr_cutoff Numeric. FDR cutoff threshold. Default is 0.01.
@@ -223,8 +237,9 @@ estimation <- function(X, M, Y, K, covariates_demo = NULL, W, filter_result) {
 #'
 #' @export
 
-confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01){
+confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, covariates_alpha = NULL, covariates_beta = NULL, nfold = 2, fdr_method = 'BH', fdr_cutoff = 0.01){
   doParallel::registerDoParallel(cores = cores)
+
   A <- scale(M) %*% t(scale(M))/ncol(M)
   eig_A <- eigen(A, symmetric = TRUE)
   U <- eig_A$vectors
@@ -232,7 +247,7 @@ confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2,
   est.jack <- foreach::foreach(i = 1:length(Y), .combine = rbind) %dopar% {
     tryCatch(
       {
-        unlist(r2_estimation_cf(X[-i], M[-i, ], Y[-i], K, covariates[-i, ], nfold, fdr_method, fdr_cutoff))
+        unlist(r2_estimation_cf(X[-i], M[-i, ], Y[-i], K, covariates[-i, ], covariates_alpha[-i, ], covariates_beta[-i, ], nfold, fdr_method, fdr_cutoff))
       },
       error = function(e) {
         message(paste("Error in iteration", i, ":", e$message))
@@ -255,7 +270,9 @@ confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2,
 #' @param M Numeric matrix. Mediators (rows = samples, columns = mediators).
 #' @param Y Numeric vector. Binary outcome variable (0/1).
 #' @param K Numeric. Proportion of cases in the population.
-#' @param covariates Numeric matrix. Covariates included in the model.
+#' @param covariates Optional numeric matrix of covariates shared between the exposure-mediator and mediator-outcome models. If specified, used when covariates_alpha and covariates_beta are NULL.
+#' @param covariates_alpha Optional numeric matrix of covariates for the exposure-mediator model (M ~ X + covariates_alpha).
+#' @param covariates_beta Optional numeric matrix of covariates for the mediator-outcome model (Y ~ M + X + covariates_beta).
 #'
 #' @return A ggplot2 object showing the histogram of p-values for the mediator-outcome associations.
 #'
@@ -273,7 +290,12 @@ confidence_interval <- function(cores, X, M, Y, K, covariates = NULL, nfold = 2,
 #'
 #' @export
 
-weak_effect_plot <- function(X, M, Y, K, covariates = NULL){
+weak_effect_plot <- function(X, M, Y, K, covariates = NULL, covariates_alpha = NULL, covariates_beta = NULL){
+  if (!is.null(covariates) && !is.null(covariates_alpha) && !is.null(covariates_beta)) {
+    warning("Both covariates_alpha and covariates_beta are provided; 'covariates' will be ignored.")
+  }
+  if (is.null(covariates_alpha)) covariates_alpha <- covariates
+  if (is.null(covariates_beta)) covariates_beta <- covariates
   P <- mean(Y)
   N <- length(Y)
   if (is.null(covariates)) {
@@ -288,7 +310,7 @@ weak_effect_plot <- function(X, M, Y, K, covariates = NULL){
 
   # q values for alpha
   getAlpha <- function(Var){
-    model <- lm(Var ~ X + covariates, weights = w)
+    model <- lm(Var ~ X + covariates_alpha, weights = w)
     alpha.est <- summary(model)$coefficients[2,'Estimate']
     p_value <- summary(model)$coefficients[2,'Pr(>|t|)']
     return(list(alpha.est, p_value))
@@ -301,7 +323,7 @@ weak_effect_plot <- function(X, M, Y, K, covariates = NULL){
 
   # q values for beta
   getBeta <- function(Var){
-    model <- glm(Y ~ Var + X + covariates + W, family = binomial(link='probit'), weights = w)
+    model <- glm(Y ~ Var + X + covariates_beta + W, family = binomial(link='probit'), weights = w)
     beta.est <- summary(model)$coefficients[2,'Estimate']
     p_value <- summary(model)$coefficients[2,'Pr(>|z|)']
     return(list(beta.est, p_value))
