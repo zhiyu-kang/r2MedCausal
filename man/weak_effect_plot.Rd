@@ -4,7 +4,15 @@
 \alias{weak_effect_plot}
 \title{Weak effect plot}
 \usage{
-weak_effect_plot(X, M, Y, K, covariates = NULL)
+weak_effect_plot(
+  X,
+  M,
+  Y,
+  K,
+  covariates = NULL,
+  covariates_alpha = NULL,
+  covariates_beta = NULL
+)
 }
 \arguments{
 \item{X}{Numeric vector. Exposure variable.}
@@ -15,7 +23,11 @@ weak_effect_plot(X, M, Y, K, covariates = NULL)
 
 \item{K}{Numeric. Proportion of cases in the population.}
 
-\item{covariates}{Numeric matrix. Covariates included in the model.}
+\item{covariates}{Optional numeric matrix of covariates shared between the exposure-mediator and mediator-outcome models. If specified, used when covariates_alpha and covariates_beta are NULL.}
+
+\item{covariates_alpha}{Optional numeric matrix of covariates for the exposure-mediator model (M ~ X + covariates_alpha).}
+
+\item{covariates_beta}{Optional numeric matrix of covariates for the mediator-outcome model (Y ~ M + X + covariates_beta).}
 }
 \value{
 A ggplot2 object showing the histogram of p-values for the mediator-outcome associations.

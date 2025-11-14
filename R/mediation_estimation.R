@@ -60,8 +60,6 @@ r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, covariates_alpha = N
 
   for (i in 1:nfold) {
     hold_out_ind <- fold_list[[i]]
-    #covariates_filter <- if (!is.null(covariates)) covariates[-hold_out_ind, ] else NULL
-    #covariates_est <- if (!is.null(covariates)) covariates[hold_out_ind, ] else NULL
     covariates_alpha_filter <- if (!is.null(covariates_alpha)) covariates_alpha[-hold_out_ind, ] else NULL
     covariates_beta_filter <- if (!is.null(covariates_beta)) covariates_beta[-hold_out_ind, ] else NULL
     covariates_alpha_est <- if (!is.null(covariates_alpha)) covariates_alpha[hold_out_ind, ] else NULL
@@ -71,7 +69,10 @@ r2_estimation_cf <- function(X, M, Y, K, covariates = NULL, covariates_alpha = N
     result_i <- estimation(X[hold_out_ind], M[hold_out_ind, ], Y[hold_out_ind], K, covariates_beta_est, W[hold_out_ind, ], filter_result)
     est.cross <- rbind(est.cross, result_i)
   }
-
+  est.cross <- as.data.frame(est.cross)
+  est.cross$sig2_11.est <- ifelse(est.cross$sig2_11.est < 0, 0, est.cross$sig2_11.est)
+  est.cross$Rmed.est <- ifelse(est.cross$sig2_11.est == 0, 0, est.cross$Rmed.est)
+  est.cross$Q.est <- ifelse(est.cross$sig2_11.est == 0, 0, est.cross$Q.est)
   result <- apply(est.cross, 2, mean)
   time.total <- as.numeric(Sys.time() - start.time, units = "secs")
   result <- c(result, 'time' = time.total)

@@ -11,6 +11,8 @@ confidence_interval(
   Y,
   K,
   covariates = NULL,
+  covariates_alpha = NULL,
+  covariates_beta = NULL,
   nfold = 2,
   fdr_method = "BH",
   fdr_cutoff = 0.01
@@ -27,7 +29,11 @@ confidence_interval(
 
 \item{K}{Numeric. Proportion of cases in the population.}
 
-\item{covariates}{Numeric matrix. Optional covariates to include in the model. Default is NULL.}
+\item{covariates}{Optional numeric matrix of covariates shared between the exposure-mediator and mediator-outcome models. If specified, used when covariates_alpha and covariates_beta are NULL.}
+
+\item{covariates_alpha}{Optional numeric matrix of covariates for the exposure-mediator model (M ~ X + covariates_alpha).}
+
+\item{covariates_beta}{Optional numeric matrix of covariates for the mediator-outcome model (Y ~ M + X + covariates_beta).}
 
 \item{nfold}{Integer. Number of folds for cross-fitting. Default is 2.}
 
